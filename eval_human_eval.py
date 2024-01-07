@@ -42,7 +42,7 @@ def filter_code(completion: str, prompt: str = None, template: str = "") -> str:
     return completion.split("\n\n")[0]
 
 
-def gen_instruct_prompt(prompt: str):
+def gen_instruct_prompt(prompt: str, template: str = "") -> str:
     """
     Converts the human-eval prompts for completion tasks
     to an instruction prompt to be fed into our instruct-tuned models.
@@ -80,16 +80,34 @@ def gen_instruct_prompt(prompt: str):
     description = description.strip()
     # if the prompt doesn't start with "def" right away, it means it had a meanful code before it like imports or specifications
     # so we need to add them to the prompt somehow, we add them as ### Input: using the Alpaca instruction prompt
+    pre_def = ""
     if prompt.strip().find("def") != 0:
-        description = (
-            description + "\n\n### Input:\n" + prompt[: prompt.find("def")].strip()
-        )
+        pre_def = prompt[: prompt.find("def")].strip()
 
     # everything is ready now.
     # notice we updated the system message to avoid additional boilerplate code
-    system_msg = "Below is an instruction that describes a task. Write a response that appropriately completes the request.\nPlease complete the following Python code without providing any additional tasks such as testing or explanations\n\n"
-    prompt_processed = f"### Instruction: Write a Python function '{function_signature}' to solve the following problem:\n{description}\n\n### Output:\n"
-    return system_msg + prompt_processed
+    if template == "alpaca":
+        if pre_def:
+            description += f"\n\n### Input:\n{pre_def}"
+
+        system_msg = "Below is an instruction that describes a task. Write a response that appropriately completes the request.\nPlease complete the following Python code without providing any additional tasks such as testing or explanations\n\n"
+        prompt = (
+            system_msg
+            + f"### Instruction: Write a Python function '{function_signature}' to solve the following problem:\n{description}\n\n### Output:\n"
+        )
+    elif template == "mistral":
+        if pre_def:
+            description += f"\nINPUTS: {pre_def}"
+
+        system_msg = "Below is an instruction that describes a programming task. Write a response code that appropriately completes the request.\nPlease complete the following Python code without providing any additional tasks such as testing or explanations\n"
+        prompt = f"<s>[INST] {system_msg}\nWrite a Python function '{function_signature}' to solve the following problem:\n{description} [/INST]"
+    else:
+        if pre_def:
+            description += f"\nInputs:\n{pre_def}"
+        system_msg = "Below is an instruction that describes a task. Write a response that appropriately completes the request.\nPlease complete the following Python code without providing any additional tasks such as testing or explanations\n\n"
+        prompt = f"Write a Python function '{function_signature}' to solve the following problem:\n{description}"
+
+    return prompt
 
 
 # def test_gen_instruct_prompt():
@@ -181,7 +199,7 @@ def test_gen_prompt_from(task_id: str = "HumanEval/64"):
     dataset = read_problems()
     # {"task_id": "HumanEval/64", "prompt": "\nFIX = \"\"\"\nAdd more test cases.\n\"\"\"\n\ndef vowels_count(s):\n    \"\"\"Write a ..."}
     prompt = dataset[task_id]["prompt"]
-    print(gen_instruct_prompt(prompt))
+    print(gen_instruct_prompt(prompt, template=""))
 
 
 def test_evaluate():
@@ -194,5 +212,5 @@ def test_evaluate():
 
 
 if __name__ == "__main__":
-    # test_gen_prompt_from("HumanEval/64")
-    test_evaluate()
+    test_gen_prompt_from("HumanEval/64")
+    # test_evaluate()
