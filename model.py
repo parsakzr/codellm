@@ -13,14 +13,13 @@ from typing import Optional, Tuple
 
 
 class EvalModel(BaseModel, arbitrary_types_allowed=True):
-    model_path: str
+    model_path: str = ""
     model: Optional[PreTrainedModel] = None
     model_name: str = ""
     tokenizer: Optional[PreTrainedTokenizer] = None
     lora_path: str = ""
     device: str = "cuda:0"
     load_8bit: bool = False
-    load_4bit: bool = False
     max_input_length: int = 512
     max_output_length: int = 512
 
@@ -28,27 +27,27 @@ class EvalModel(BaseModel, arbitrary_types_allowed=True):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.load()
+        if self.model_path != "":
+            self.load()
+        # else:
+        #     self.load_from(**kwargs)
+
+    def load_from(self, model: PreTrainedModel, tokenizer: PreTrainedTokenizer):
+        self.model = model
+        self.tokenizer = tokenizer
+        # self.model_name = model_name
 
     def load(self):
         if self.model is None:
             args = {}
             if self.load_8bit:
                 args.update(device_map="auto", load_in_8bit=True)
-            if self.load_4bit:
-                bnb_config = BitsAndBytesConfig(
-                    load_in_4bit=True,
-                    bnb_4bit_use_double_quant=True,
-                    bnb_4bit_quant_type="nf4",
-                    bnb_4bit_compute_dtype=torch.bfloat16,
-                )
-                args.update(device_map="auto", quantization_config=bnb_config)
             self.model = AutoModelForCausalLM.from_pretrained(self.model_path, **args)
             if self.lora_path:
                 self.model = PeftModel.from_pretrained(self.model, self.lora_path)
                 self.model = self.model.merge_and_unload()
             self.model.eval()
-            if not self.load_8bit:
+            if not self.load_8bit or not self.load_4bit:
                 self.model.to(self.device)
         if self.tokenizer is None:
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
