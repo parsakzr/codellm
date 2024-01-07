@@ -55,7 +55,7 @@ class EvalModel(BaseModel, arbitrary_types_allowed=True):
         self.model_name = self.model_path.split("/")[-1]
 
     def generate(
-        self, prompt: str, verbose: bool = False, pure_mode: bool = True, **kwargs
+        self, prompt: str, verbose: bool = False, pure_mode: bool = False, **kwargs
     ):
         def generate_prompt(text: str, *, prompt_template: str = ""):
             if prompt_template:
