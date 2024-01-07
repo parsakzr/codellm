@@ -49,7 +49,9 @@ def filter_code(completion: str, prompt: str = None, template: str = "") -> str:
         return code.split("\n\n")[0]
     except Exception as e:
         print(e)
-        return completion
+        return code
+    finally:
+        return code
 
 
 def gen_instruct_prompt(prompt: str, template: str = "") -> str:
