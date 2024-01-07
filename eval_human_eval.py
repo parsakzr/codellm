@@ -141,6 +141,8 @@ def fix_indents(text: str, multiple: int = 2):
 def evaluate(model, data_path: str = None, **kwargs) -> dict:
     dataset = read_problems()
     n_sample = kwargs.get("n_sample", 1)
+    template = kwargs.get("template", "alpaca")  # default to alpaca
+
     best_temperature = {
         1: 0.1,
         10: 0.6,
@@ -151,7 +153,7 @@ def evaluate(model, data_path: str = None, **kwargs) -> dict:
     for task_id in dataset:
         for i in range(n_sample):
             prompt = dataset[task_id]["prompt"]
-            prompt = gen_instruct_prompt(prompt)
+            prompt = gen_instruct_prompt(prompt, template=template)
             temperature = best_temperature[n_sample]
             if temperature > 0:
                 completion = model.generate(
@@ -199,18 +201,19 @@ def test_gen_prompt_from(task_id: str = "HumanEval/64"):
     dataset = read_problems()
     # {"task_id": "HumanEval/64", "prompt": "\nFIX = \"\"\"\nAdd more test cases.\n\"\"\"\n\ndef vowels_count(s):\n    \"\"\"Write a ..."}
     prompt = dataset[task_id]["prompt"]
-    print(gen_instruct_prompt(prompt, template=""))
+    print(gen_instruct_prompt(prompt, template="mixtral"))
 
 
 def test_evaluate():
-    model_path = "Salesforce/codegen-350M-mono"
-    lora_path = "lora-finetunedcodegen-350M-mono-temp3"
-    model = EvalModel(model_path=model_path, lora_path=lora_path, device="cpu")
+    # model_path = "Salesforce/codegen-350M-mono"
+    # lora_path = "lora-finetunedcodegen-350M-mono-temp3"
+    model_path = "parsak/codegen-350M-mono-lora-instruction"
+    model = EvalModel(model_path=model_path, device="cpu")
 
-    data_path = "humaneval_Salesforce_codegen-350M-mono_predictions.jsonl"
-    result = evaluate(model, data_path, n_sample=1)
+    data_path = "humaneval_Salesforce_codegen-350M-mono_predictions-2.jsonl"
+    result = evaluate(model, data_path, n_sample=1, template="mistral")
 
 
 if __name__ == "__main__":
-    test_gen_prompt_from("HumanEval/64")
-    # test_evaluate()
+    # test_gen_prompt_from("HumanEval/64")
+    test_evaluate()
