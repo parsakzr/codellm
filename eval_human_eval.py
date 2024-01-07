@@ -167,7 +167,7 @@ def evaluate(model, data_path: str = None, **kwargs) -> dict:
             prompt = dataset[task_id]["prompt"]
             prompt = gen_instruct_prompt(prompt, template=template)
             temperature = best_temperature[n_sample]
-            if temperature > 0:
+            if temperature > 0.1:  # only use temperature for n_sample > 1
                 completion = model.generate(
                     prompt, prompt_mode=False, temperature=temperature, do_sample=True
                 )

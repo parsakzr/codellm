@@ -112,12 +112,15 @@ class EvalModel(BaseModel, arbitrary_types_allowed=True):
 
         output = self.tokenizer.decode(generated_ids[0], skip_special_tokens=True)
         if pure_mode:
-            # remove the prompt, since it's a completion model
-            output = output.replace(prompt, "")
-            # select the text between the two '''
-            output = output.split("'''")[1]
-            # remove the first line (which is the language)
-            output = "\n".join(output.split("\n")[1:])
+            try:
+                # remove the prompt, since it's a completion model
+                output = output.replace(prompt, "")
+                # select the text between the two '''
+                output = output.split("'''")[1]
+                # remove the first line (which is the language)
+                output = "\n".join(output.split("\n")[1:])
+            except:
+                pass
         if verbose:
             print(f"-------- Generated Output --------\n{output}")
 
@@ -131,7 +134,9 @@ def test_Model():
     print(model.model_name)
     prompt = "Create a function to print Hello world!"
 
-    output = model.generate(prompt, verbose=True, temperature=0.5, do_sample=True)
+    output = model.generate(
+        prompt, prompt_mode=False, verbose=True, temperature=0.5, do_sample=True
+    )
 
     # print(output)
 
