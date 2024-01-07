@@ -112,20 +112,36 @@ class EvalModel(BaseModel, arbitrary_types_allowed=True):
 
         output = self.tokenizer.decode(generated_ids[0], skip_special_tokens=True)
 
-        # if pure_mode:
-        #     try:
-        #         # remove the prompt, since it's a completion model
-        #         output = output.replace(prompt, "")
-        #         # select the text between the two '''
-        #         output = output.split("'''")[1]
-        #         # remove the first line (which is the language)
-        #         output = "\n".join(output.split("\n")[1:])
-        #     except:
-        #         pass
-
+        if pure_mode:
+            try:
+                # remove the prompt, since it's a completion model
+                output = output.replace(prompt, "")
+                # select the text between the two '''
+                output = output.split("'''")[1]
+                # remove the first line (which is the language)
+                output = "\n".join(output.split("\n")[1:])
+            except:
+                pass
         if verbose:
             print(f"-------- Generated Output --------\n{output}")
 
+        return output
+
+    def run(self, prompt: str, **kwargs):  # TODO: temp fix, no need
+        input_ids = self.tokenizer(
+            prompt, return_tensors="pt", add_special_tokens=True
+        ).input_ids
+        if not self.load_8bit:
+            input_ids = input_ids.to(self.device)
+
+        generated_ids = self.model.generate(
+            input_ids,
+            max_new_tokens=self.max_output_length,
+            pad_token_id=self.tokenizer.eos_token_id,  # avoid warning
+            **kwargs,
+        )
+
+        output = self.tokenizer.decode(generated_ids[0], skip_special_tokens=True)
         return output
 
 
