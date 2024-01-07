@@ -40,10 +40,8 @@ def filter_code(completion: str, prompt: str = None, template: str = "") -> str:
             code = "\n".join(code.split("\n")[1:])
         if template == "mistral":
             # get the code inside [CODE] ... [/CODE]
-            print("doing mistral [CODE] ... [/CODE]")
             code = code.split("[CODE]")[1]
             code = code.split("[/CODE]")[0]
-            print("code: ", code)
         ## The program tends to overwrite, we only take the first function
         code = code.lstrip("\n")
         return code.split("\n\n")[0]
@@ -100,7 +98,7 @@ def gen_instruct_prompt(prompt: str, template: str = "") -> str:
     # notice we updated the system message to avoid additional boilerplate code
     if template == "alpaca":
         if pre_def:
-            description += f"\n\n### Input:\n{pre_def}"
+            description += f"\n\n### Input:\n start the code with {pre_def}"
 
         system_msg = "Below is an instruction that describes a task. Write a response that appropriately completes the request.\nPlease complete the following Python code without providing any additional tasks such as testing or explanations\n\n"
         prompt = (
@@ -109,7 +107,7 @@ def gen_instruct_prompt(prompt: str, template: str = "") -> str:
         )
     elif template == "mistral":
         if pre_def:
-            description += f"\nINPUTS: {pre_def}"
+            description += f"\nINPUTS: start the code with '{pre_def}'"  # fixed some cases that imports not written in the generated code
 
         system_msg = "Below is an instruction that describes a programming task. Write a response code that appropriately completes the request.\nPlease complete the following Python code without providing any additional tasks such as testing or explanations\n"
         prompt = f"<s>[INST] {system_msg}\nWrite a Python function '{function_signature}' to solve the following problem:\n{description} [/INST]"

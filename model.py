@@ -152,11 +152,9 @@ def test_Model():
     print(model.model_name)
     prompt = "Create a function to print Hello world!"
 
-    output = model.generate(
-        prompt, prompt_mode=False, verbose=True, temperature=0.5, do_sample=True
-    )
+    output = model.run(prompt)
 
-    # print(output)
+    print(output)
 
 
 if __name__ == "__main__":
