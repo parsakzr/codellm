@@ -18,7 +18,7 @@ class EvalModel(BaseModel, arbitrary_types_allowed=True):
     model_name: str = ""
     tokenizer: Optional[PreTrainedTokenizer] = None
     lora_path: str = ""
-    device: str = "auto"
+    device: str = "cuda:0"
     load_8bit: bool = False
     load_4bit: bool = False
     max_input_length: int = 512
@@ -34,7 +34,7 @@ class EvalModel(BaseModel, arbitrary_types_allowed=True):
         if self.model is None:
             args = {}
             if self.load_8bit:
-                args.update(load_in_8bit=True)  # device_map="cuda:0",
+                args.update(device_map="auto", load_in_8bit=True)
             if self.load_4bit:
                 bnb_config = BitsAndBytesConfig(
                     load_in_4bit=True,
@@ -42,7 +42,7 @@ class EvalModel(BaseModel, arbitrary_types_allowed=True):
                     bnb_4bit_quant_type="nf4",
                     bnb_4bit_compute_dtype=torch.bfloat16,
                 )
-                args.update(quantization_config=bnb_config)  # device_map="cuda:0",
+                args.update(device_map="auto", quantization_config=bnb_config)
             self.model = AutoModelForCausalLM.from_pretrained(self.model_path, **args)
             if self.lora_path:
                 self.model = PeftModel.from_pretrained(self.model, self.lora_path)
