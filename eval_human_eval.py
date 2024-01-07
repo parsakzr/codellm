@@ -27,19 +27,29 @@ def entry_point(
 
 
 def filter_code(completion: str, prompt: str = None, template: str = "") -> str:
-    if prompt is not None:
-        # remove the prompt, since it's a completion model
-        completion = completion.replace(prompt, "")
-    if template == "md":
-        ## Remove boilerplate for the function, reused pure_mode in generation_pipeline
-        # select the text between the two '''
-        completion = completion.split("'''")[1]
-        # remove the first line (which is the language)
-        completion = "\n".join(completion.split("\n")[1:])
-
-    ## The program tends to overwrite, we only take the first function
-    completion = completion.lstrip("\n")
-    return completion.split("\n\n")[0]
+    try:
+        code = completion
+        if prompt is not None:
+            # remove the prompt, since it's a completion model
+            code = code.replace(prompt, "")
+        if template == "alpaca":
+            ## Remove boilerplate for the function, reused pure_mode in generation_pipeline
+            # select the text between the two '''
+            code = code.split("'''")[1]
+            # remove the first line (which is the language)
+            code = "\n".join(code.split("\n")[1:])
+        if template == "mistral":
+            # get the code inside [CODE] ... [/CODE]
+            print("doing mistral [CODE] ... [/CODE]")
+            code = code.split("[CODE]")[1]
+            code = code.split("[/CODE]")[0]
+            print("code: ", code)
+        ## The program tends to overwrite, we only take the first function
+        code = code.lstrip("\n")
+        return code.split("\n\n")[0]
+    except Exception as e:
+        print(e)
+        return completion
 
 
 def gen_instruct_prompt(prompt: str, template: str = "") -> str:
@@ -204,6 +214,17 @@ def test_gen_prompt_from(task_id: str = "HumanEval/64"):
     print(gen_instruct_prompt(prompt, template="mixtral"))
 
 
+def test_fixcode_mistral():
+    completion = """[INST] Below is an instruction that describes a programming task. Write a response code that appropriately completes the request.
+
+Write a function that calculates area of circle! [/INST] 
+[CODE]
+def circle_area(radius):
+    return 3.14 * radius ** 2
+[/CODE]"""
+    print(filter_code(completion, template="mistral"))
+
+
 def test_evaluate():
     # model_path = "Salesforce/codegen-350M-mono"
     # lora_path = "lora-finetunedcodegen-350M-mono-temp3"
@@ -216,4 +237,5 @@ def test_evaluate():
 
 if __name__ == "__main__":
     # test_gen_prompt_from("HumanEval/64")
-    test_evaluate()
+    test_fixcode_mistral()
+    # test_evaluate()
