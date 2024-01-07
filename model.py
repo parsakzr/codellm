@@ -1,9 +1,11 @@
+import torch
 from peft import PeftModel
 from transformers import (
     PreTrainedModel,
     PreTrainedTokenizer,
     AutoModelForCausalLM,
     AutoTokenizer,
+    BitsAndBytesConfig,
 )
 
 from pydantic import BaseModel, ConfigDict
@@ -13,10 +15,12 @@ from typing import Optional, Tuple
 class EvalModel(BaseModel, arbitrary_types_allowed=True):
     model_path: str
     model: Optional[PreTrainedModel] = None
+    model_name: str = ""
     tokenizer: Optional[PreTrainedTokenizer] = None
     lora_path: str = ""
-    device: str = "cuda:0"
+    device: str = "auto"
     load_8bit: bool = False
+    load_4bit: bool = False
     max_input_length: int = 512
     max_output_length: int = 512
 
@@ -30,7 +34,15 @@ class EvalModel(BaseModel, arbitrary_types_allowed=True):
         if self.model is None:
             args = {}
             if self.load_8bit:
-                args.update(device_map="auto", load_in_8bit=True)
+                args.update(load_in_8bit=True)  # device_map="cuda:0",
+            if self.load_4bit:
+                bnb_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_use_double_quant=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_compute_dtype=torch.bfloat16,
+                )
+                args.update(quantization_config=bnb_config)  # device_map="cuda:0",
             self.model = AutoModelForCausalLM.from_pretrained(self.model_path, **args)
             if self.lora_path:
                 self.model = PeftModel.from_pretrained(self.model, self.lora_path)
@@ -40,16 +52,39 @@ class EvalModel(BaseModel, arbitrary_types_allowed=True):
                 self.model.to(self.device)
         if self.tokenizer is None:
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
+        # mandatory for prompt style
+        self.model_name = self.model_path.split("/")[-1]
 
     def generate(
         self, prompt: str, verbose: bool = False, pure_mode: bool = True, **kwargs
     ):
-        def generate_prompt(text):
-            prompt = f"Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n"
-            prompt += f"### Instruction: {text}\n\n### Output:\n"
-            return prompt
+        def generate_prompt(text: str, *, prompt_template: str = ""):
+            if prompt_template:
+                try:
+                    prompt = prompt_template.format(text)
+                except KeyError:
+                    # if the prompt template is not valid, use the original prompt
+                    print(
+                        "Invalid prompt template, using original prompt. Make sure to include {} in the template."
+                    )
+                    return text
+                return prompt
 
-        prompt = generate_prompt(prompt)
+            if "codegen" in self.model_name.lower():
+                # style "alpaca":
+                system_msg = f"Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n"
+                return system_msg + f"### Instruction: {text}\n\n### Output:\n"
+
+            if "mistral" in self.model_name.lower():
+                system_msg = "Below is an instruction that describes a programming task. Write a response code that appropriately completes the request.\n"
+                return f"<s>[INST] {system_msg}\n{text} [/INST]"
+
+            return text
+
+        # from kwargs if style is specified
+        prompt_template = kwargs.get("prompt_template", "")
+        prompt = generate_prompt(prompt, prompt_template=prompt_template)
+
         if verbose:
             print(f"------------ Prompt -------------\n{prompt}")
 
@@ -86,14 +121,14 @@ class EvalModel(BaseModel, arbitrary_types_allowed=True):
 
 def test_Model():
     model_id = "Salesforce/codegen-350M-mono"
-    lora_id = "lora-finetunedcodegen-350M-mono-temp3"
-    model = EvalModel(model_path=model_id, lora_path=lora_id, device="cpu")
+    model = EvalModel(model_path=model_id, device="cpu", load_4bit=True)
 
+    print(model.model_name)
     prompt = "Create a function to print Hello world!"
 
     output = model.generate(prompt, verbose=True, temperature=0.5, do_sample=True)
 
-    print(output)
+    # print(output)
 
 
 if __name__ == "__main__":
