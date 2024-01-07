@@ -217,9 +217,7 @@ def test_gen_prompt_from(task_id: str = "HumanEval/64"):
 
 
 def test_fixcode_mistral():
-    completion = """[INST] Below is an instruction that describes a programming task. Write a response code that appropriately completes the request.
-
-Write a function that calculates area of circle! [/INST] 
+    completion = """[INST] Below is an instruction that describes a programming task. Write a response code that appropriately completes the request.Write a function that calculates area of circle! [/INST] 
 [CODE]
 def circle_area(radius):
     return 3.14 * radius ** 2
