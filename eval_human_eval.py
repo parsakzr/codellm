@@ -169,10 +169,10 @@ def evaluate(model, data_path: str = None, **kwargs) -> dict:
             temperature = best_temperature[n_sample]
             if temperature > 0:
                 completion = model.generate(
-                    prompt, temperature=temperature, do_sample=True
+                    prompt, prompt_mode=False, temperature=temperature, do_sample=True
                 )
             else:
-                completion = model.generate(prompt)
+                completion = model.generate(prompt, prompt_mode=False)
 
             completion = fix_indents(completion)
             sample = dict(task_id=task_id, completion=filter_code(completion))

@@ -55,7 +55,12 @@ class EvalModel(BaseModel, arbitrary_types_allowed=True):
         self.model_name = self.model_path.split("/")[-1]
 
     def generate(
-        self, prompt: str, verbose: bool = False, pure_mode: bool = False, **kwargs
+        self,
+        prompt: str,
+        prompt_mode: bool = True,
+        verbose: bool = False,
+        pure_mode: bool = False,
+        **kwargs,
     ):
         def generate_prompt(text: str, *, prompt_template: str = ""):
             if prompt_template:
@@ -82,7 +87,8 @@ class EvalModel(BaseModel, arbitrary_types_allowed=True):
 
         # from kwargs if style is specified
         prompt_template = kwargs.get("prompt_template", "")
-        prompt = generate_prompt(prompt, prompt_template=prompt_template)
+        if prompt_mode:
+            prompt = generate_prompt(prompt, prompt_template=prompt_template)
 
         if verbose:
             print(f"------------ Prompt -------------\n{prompt}")
@@ -105,13 +111,13 @@ class EvalModel(BaseModel, arbitrary_types_allowed=True):
         )
 
         output = self.tokenizer.decode(generated_ids[0], skip_special_tokens=True)
-        # if pure_mode:
-        #     # remove the prompt, since it's a completion model
-        #     output = output.replace(prompt, "")
-        #     # select the text between the two '''
-        #     output = output.split("'''")[1]
-        #     # remove the first line (which is the language)
-        #     output = "\n".join(output.split("\n")[1:])
+        if pure_mode:
+            # remove the prompt, since it's a completion model
+            output = output.replace(prompt, "")
+            # select the text between the two '''
+            output = output.split("'''")[1]
+            # remove the first line (which is the language)
+            output = "\n".join(output.split("\n")[1:])
         if verbose:
             print(f"-------- Generated Output --------\n{output}")
 
