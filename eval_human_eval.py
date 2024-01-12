@@ -1,29 +1,29 @@
 from tqdm import tqdm
 
-from human_eval.data import write_jsonl, read_problems
-from human_eval.evaluation import evaluate_functional_correctness
+# from human_eval.data import write_jsonl, read_problems
+# from human_eval.evaluation import evaluate_functional_correctness
 
 from model import EvalModel
 
 
 # Ref: Instruct_eval: https://github.com/declare-lab/instruct-eval
-def entry_point(
-    problem_file: str,
-    sample_file: str,
-    k: str = "1,10,100",
-    n_workers: int = 4,
-    timeout: float = 3.0,
-):
-    """
-    Evaluates the functional correctness of generated samples, and writes
-    results to f"{sample_file}_results.jsonl.gz"
-    """
-    k = list(map(int, k.split(",")))
-    results = evaluate_functional_correctness(
-        sample_file, k, n_workers, timeout, problem_file
-    )
+# def entry_point(
+#     problem_file: str,
+#     sample_file: str,
+#     k: str = "1,10,100",
+#     n_workers: int = 4,
+#     timeout: float = 3.0,
+# ):
+#     """
+#     Evaluates the functional correctness of generated samples, and writes
+#     results to f"{sample_file}_results.jsonl.gz"
+#     """
+#     k = list(map(int, k.split(",")))
+#     results = evaluate_functional_correctness(
+#         sample_file, k, n_workers, timeout, problem_file
+#     )
 
-    return results
+#     return results
 
 
 def filter_code(completion: str, prompt: str = None, template: str = "") -> str:
@@ -79,14 +79,19 @@ def gen_instruct_prompt(prompt: str, template: str = "") -> str:
         for i, element in enumerate(splitted_prompt):
             if (element.strip().find("def")) != -1:
                 signeture_indx = i
+                found_def = True
                 break
         if signeture_indx == -1:
-            raise ValueError("Cannot find the function signature")
+            found_def = False  # not found at all
 
-        function_signature = splitted_prompt[signeture_indx]
-        description = splitted_prompt[signeture_indx + 1]
+        function_signature = splitted_prompt[signeture_indx] if found_def else ""
+        description = splitted_prompt[signeture_indx + 1] if found_def else description
 
-    function_signature = function_signature[function_signature.find("def") : -2].strip()
+    function_signature = (
+        function_signature[function_signature.find("def") : -2].strip()
+        if found_def
+        else ""
+    )
     description = description.strip()
     # if the prompt doesn't start with "def" right away, it means it had a meanful code before it like imports or specifications
     # so we need to add them to the prompt somehow, we add them as ### Input: using the Alpaca instruction prompt
