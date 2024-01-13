@@ -101,7 +101,7 @@ def gen_instruct_prompt(prompt: str, template: str = "") -> str:
 
     # everything is ready now.
     # notice we updated the system message to avoid additional boilerplate code
-    if template == "alpaca":
+    if template == "alpaca" or template == "phi":
         if pre_def:
             description += f"\n\n### Input:\n start the code with {pre_def}"
 
